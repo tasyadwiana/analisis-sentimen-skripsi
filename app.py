@@ -271,7 +271,7 @@ def main_page():
       st.title("Analisis Sentimen Real-Time")
       st.write("Masukkan komentar baru untuk diprediksi menggunakan model **Naive Bayes** dan **SVM**.")
 
-      user_input = st.text_area("Masukkan teks komentar YouTube yang ingin dianalisis:", height=100)
+      user_input = st.text_area("Masukkan teks komentar yang ingin dianalisis:", height=100)
 
       if st.button("Analisis Komentar", type="primary"):
          if user_input.strip() == "":
@@ -360,8 +360,8 @@ def main_page():
 
    #evaluasi model
    elif menu == "Evaluasi Model":
-      st.title("Evaluasi Kinerja Model")
-      st.markdown("Perbandingan metrik evaluasi asli dari data pengujian (Testing Data).")
+      st.title("Evaluasi Performa Model")
+      st.markdown("Perbandingan metrik evaluasi.")
 
       labels = evaluation_metrics['labels']
 
@@ -389,6 +389,18 @@ def main_page():
          plt.title("Confusion Matrix - SVM")
          st.pyplot(fig)
 
+      st.markdown("---")
+      st.subheader("Kesimpulan Performa")
+
+      acc_nb = evaluation_metrics['nb']['accuracy']
+      acc_svm = evaluation_metrics['svm']['accuracy']
+
+      if acc_svm > acc_nb:
+        st.success(f"Berdasarkan metrik pengujian, **Support Vector Machine (SVM)** menunjukkan performa yang lebih unggul dengan tingkat akurasi **{acc_svm * 100:.2f}%** dibandingkan Naïve Bayes ({acc_nb * 100:.2f}%).")
+      elif acc_nb > acc_svm:
+        st.success(f"Berdasarkan metrik pengujian, **Naïve Bayes** menunjukkan performa yang lebih unggul dengan tingkat akurasi **{acc_nb * 100:.2f}%** dibandingkan SVM ({acc_svm * 100:.2f}%).")
+      else:
+        st.info(f"Kedua algoritma menunjukkan performa yang seimbang dengan tingkat akurasi **{acc_nb * 100:.2f}%**.")
    #visualisasi
    elif menu == "Visualisasi":
       st.title("Visualisasi Data Sentimen")

@@ -1,0 +1,9 @@
+streamlit
+pandas
+nltk
+matplotlib
+seaborn
+streamlit-option-menu
+wordcloud
+Sastrawi
+scikit-learn==1.6.1

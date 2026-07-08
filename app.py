@@ -6,11 +6,14 @@ import pickle
 import re
 import nltk
 import html
+import os
 import datetime
 import matplotlib.pyplot as plt
 import seaborn as sns
+from fpdf import FPDF
 from streamlit_option_menu import option_menu
 from wordcloud import WordCloud
+from collections import Counter
 from nltk.tokenize import word_tokenize
 from nltk.corpus import stopwords
 from Sastrawi.Stemmer.StemmerFactory import StemmerFactory
@@ -27,6 +30,150 @@ st.markdown("""
 
     </style>
 """, unsafe_allow_html=True)
+
+def format_tanggal_indo():
+   hari_dict = {0: 'Senin', 1: 'Selasa', 2: 'Rabu', 3: 'Kamis', 4: 'Jumat', 5: 'Sabtu', 6: 'Minggu'}
+   bulan_dict = {1: 'Januari', 2: 'Februari', 3: 'Maret', 4: 'April', 5: 'Mei', 6: 'Juni', 
+                  7: 'Juli', 8: 'Agustus', 9: 'September', 10: 'Oktober', 11: 'November', 12: 'Desember'}
+
+   tz_wib = datetime.timezone(datetime.timedelta(hours=7))
+   now = datetime.datetime.now(tz_wib)
+
+   hari = hari_dict[now.weekday()]
+   bulan = bulan_dict[now.month]
+
+   return f"{hari}, {now.day} {bulan} {now.year}"
+
+def cetak_pdf_terpadu(pilihan_laporan, df_data=None, metrik=None):
+   pdf = FPDF()
+   pdf.add_page()
+
+
+   pdf.image("logosentiment.png", x=10, y=8, w=20)
+   pdf.set_font("Arial", "B", 12)
+   pdf.multi_cell(0, 6, "LAPORAN ANALISIS SENTIMEN KOMENTAR YOUTUBE\nPODCAST KELUARGA ARTIS", align="C")
+    
+   pdf.line(10, 25, 200, 25)
+   pdf.line(10, 26, 200, 26)
+   pdf.ln(10)
+
+   pdf.set_font("Arial", "B", 11)
+   pdf.cell(0, 8, f"{pilihan_laporan}", ln=True, align="C")
+   pdf.ln(5)
+
+   pdf.set_font("Arial", "", 11)
+   total_data = len(df_data)
+   jml_positif = len(df_data[df_data['label'].astype(str).str.lower() == 'positif'])
+   jml_negatif = len(df_data[df_data['label'].astype(str).str.lower() == 'negatif'])
+   jml_netral = len(df_data[df_data['label'].astype(str).str.lower() == 'netral'])
+
+   acc_nb = metrik['nb']['accuracy'] * 100 if metrik else 0
+   acc_svm = metrik['svm']['accuracy'] * 100 if metrik else 0
+
+   if pilihan_laporan == "Laporan Ringkasan Data Hasil Penelitian":
+      pct_pos = (jml_positif / total_data) * 100
+      pct_neg = (jml_negatif / total_data) * 100
+      pct_netral = (jml_netral / total_data) * 100
+      
+      label_width = 70
+
+      pdf.multi_cell(0, 8, "Berikut adalah ringkasan keseluruhan dari data dan pengujian yang dilakukan dalam penelitian ini:")
+      pdf.set_x(pdf.l_margin) 
+      pdf.cell(label_width, 8, "- Total Data Keseluruhan")
+      pdf.cell(0, 8, f": {total_data} komentar", ln=True)
+
+      pdf.cell(label_width, 8, "- Sentimen Positif")
+      pdf.cell(0, 8, f": {pct_pos:.1f}%", ln=True)
+      
+      pdf.cell(label_width, 8, "- Sentimen Negatif")
+      pdf.cell(0, 8, f": {pct_neg:.1f}%", ln=True)
+
+      pdf.cell(label_width, 8, "- Sentimen Netral")
+      pdf.cell(0, 8, f": {pct_netral:.1f}%", ln=True)
+
+      pdf.ln(5)
+      pdf.multi_cell(0, 8, "Hasil Kinerja Algoritma Klasifikasi (Akurasi):")
+      pdf.set_x(pdf.l_margin) 
+      pdf.cell(label_width, 8, "- Naive Bayes")
+      pdf.cell(0, 8, f": {acc_nb:.2f}%", ln=True)
+      pdf.cell(label_width, 8, "- Support Vector Machine")
+      pdf.cell(0, 8, f": {acc_svm:.2f}%", ln=True)
+
+   elif pilihan_laporan == "Laporan Evaluasi Performa Model":
+      label_width = 80
+      pdf.multi_cell(0, 8, "Perbandingan metrik performa pengujian algoritma (dalam persentase) setelah tahap SMOTE:")
+      pdf.set_x(pdf.l_margin) 
+      pdf.cell(label_width, 8, "- Tingkat Akurasi Naive Bayes")
+      pdf.cell(0, 8, f": {acc_nb:.2f}%", ln=True)
+      pdf.cell(label_width, 8, "- Tingkat Akurasi Support Vector Machine")
+      pdf.cell(0, 8, f": {acc_svm:.2f}%", ln=True)
+      pdf.ln(5)
+
+      pdf.set_font("Arial", "B", 11)
+      pdf.cell(0, 8, "Kesimpulan:", ln=True)
+      pdf.set_font("Arial", "I", 11)
+      if acc_svm > acc_nb:
+         pdf.multi_cell(0, 8, f"Berdasarkan hasil pengujian di atas, algoritma Support Vector Machine (SVM) menunjukkan performa klasifikasi sentimen yang lebih unggul dibandingkan Naive Bayes dengan selisih tingkat akurasi {(acc_svm - acc_nb):.2f}%.")
+      elif acc_nb > acc_svm:
+         pdf.multi_cell(0, 8, f"Berdasarkan hasil pengujian di atas, algoritma Naive Bayes menunjukkan performa klasifikasi sentimen yang lebih unggul dibandingkan SVM dengan selisih tingkat akurasi {(acc_nb - acc_svm):.2f}%.")
+      else:
+         pdf.multi_cell(0, 8, "Berdasarkan hasil pengujian di atas, algoritma Naive Bayes dan Support Vector Machine (SVM) menunjukkan performa klasifikasi sentimen yang seimbang.")
+
+   elif pilihan_laporan == "Laporan Kata Sentimen Positif Terbanyak":
+      pdf.multi_cell(0, 8, "Visualisasi kata kunci yang paling dominan muncul pada komentar bersentimen Positif:")
+
+      teks_pos = ' '.join(df_data[df_data['label'].astype(str).str.lower() == 'positif']['komentar_bersih'].dropna().astype(str))
+      wordcloud = WordCloud(width=600, height=300, background_color='white', colormap='Greens').generate(teks_pos)
+      wordcloud.to_file("temp_wc.png")
+
+      pdf.image("temp_wc.png", x=15, w=180)
+      pdf.ln(5)
+
+      top_pos = Counter(teks_pos.split()).most_common(20)
+      pdf.set_font("Arial", "B", 10)
+      pdf.cell(0, 8, "Rincian Top 20 Kata Positif:", ln=True)
+      pdf.set_font("Arial", "", 10)
+
+      baris_kata = [f"{kata} ({jumlah})" for kata, jumlah in top_pos]
+      pdf.multi_cell(0, 6, " | ".join(baris_kata))
+
+      if os.path.exists("temp_wc.png"):
+         os.remove("temp_wc.png")
+
+   elif pilihan_laporan == "Laporan Distribusi Sentimen":
+      pdf.multi_cell(0, 8, "Berikut adalah visualisasi bar chart yang merepresentasikan perbandingan jumlah kelas sentimen:")
+        
+      fig, ax = plt.subplots(figsize=(6, 4))
+      sns.barplot(x=['Positif', 'Negatif', 'Netral'], y=[jml_positif, jml_negatif, jml_netral], palette='viridis', hue=['Positif', 'Negatif', 'Netral'], ax=ax)
+      ax.set_ylabel("Jumlah Komentar")
+      plt.tight_layout()
+      plt.savefig("temp_bar.png")
+      plt.close(fig)
+   
+      pdf.image("temp_bar.png", x=30, w=150)
+      if os.path.exists("temp_bar.png"):
+         os.remove("temp_bar.png")
+      
+      pdf.ln(5)
+
+      label_width = 50
+
+      pdf.cell(label_width, 8, "- Sentimen Positif")
+      pdf.cell(0, 8, f": {jml_positif} komentar", ln=True)
+
+      pdf.cell(label_width, 8, "- Sentimen Negatif")
+      pdf.cell(0, 8, f": {jml_negatif} komentar", ln=True)
+
+      pdf.cell(label_width, 8, "- Sentimen Netral")
+      pdf.cell(0, 8, f": {jml_netral} komentar", ln=True)
+
+   pdf.ln(15)
+   pdf.set_font("Arial", "", 11)
+   pdf.cell(120) 
+   pdf.cell(60, 6, f"Jakarta, {format_tanggal_indo()}", ln=True, align="C")
+   pdf.cell(120)
+    
+   return bytes(pdf.output())
 
 def make_hashes(password):
    return hashlib.sha256(str.encode(password)).hexdigest()
@@ -217,7 +364,7 @@ def main_page():
    with st.sidebar:
       menu = option_menu(
          menu_title="Pilih Halaman:",
-         options=["Dashboard", "Analisis Sentimen", "Riwayat Analisis", "Evaluasi Model", "Visualisasi"]
+         options=["Dashboard", "Analisis Sentimen", "Riwayat Analisis", "Evaluasi Model", "Visualisasi", "Cetak Laporan"]
       )
    # dashboard
    if menu == "Dashboard":
@@ -430,6 +577,36 @@ def main_page():
       ax3.imshow(wordcloud, interpolation='bilinear')
       ax3.axis('off')
       st.pyplot(fig3)
+#cetak laporan
+   elif menu == "Cetak Laporan":
+      st.title("Cetak Dokumen Laporan")
+      st.write("Unduh hasil analisis sentimen dalam format dokumen PDF resmi.")
+      st.markdown("---")
+
+   daftar_laporan = [
+         "Laporan Ringkasan Data Hasil Penelitian",
+         "Laporan Evaluasi Performa Model",
+         "Laporan Kata Sentimen Positif Terbanyak",
+         "Laporan Distribusi Sentimen"
+   ]
+   
+   pilihan = st.selectbox("Pilih Kategori Laporan:", daftar_laporan)
+
+   if st.button("Siapkan Dokumen", type="primary"):
+      with st.spinner("Menyusun dokumen PDF beserta visualisasi grafik..."):
+         
+         pdf_bytes = cetak_pdf_terpadu(pilihan_laporan=pilihan, df_data=df, metrik=evaluation_metrics)
+                
+         st.success(f"Dokumen **{pilihan}** berhasil disiapkan!")
+                
+         st.download_button(
+            label="Unduh File PDF",
+            data=pdf_bytes,
+            file_name=f"{pilihan.replace(' ', '_')}.pdf",
+            mime="application/pdf"
+                )
+         
+
 if not st.session_state['logged_in']:
    login_page()
 else:

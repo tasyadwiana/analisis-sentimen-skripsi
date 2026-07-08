@@ -361,7 +361,7 @@ def main_page():
    #evaluasi model
    elif menu == "Evaluasi Model":
       st.title("Evaluasi Performa Model")
-      st.markdown("Perbandingan metrik evaluasi.")
+      st.markdown("Perbandingan metrik evaluasi terhadap komentar YouTube Podcast Keluarga Artis.")
 
       labels = evaluation_metrics['labels']
 

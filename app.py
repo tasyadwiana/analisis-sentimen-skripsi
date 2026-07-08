@@ -583,28 +583,28 @@ def main_page():
       st.write("Unduh hasil analisis sentimen dalam format dokumen PDF resmi.")
       st.markdown("---")
 
-   daftar_laporan = [
-         "Laporan Ringkasan Data Hasil Penelitian",
-         "Laporan Evaluasi Performa Model",
-         "Laporan Kata Sentimen Positif Terbanyak",
-         "Laporan Distribusi Sentimen"
-   ]
-   
-   pilihan = st.selectbox("Pilih Kategori Laporan:", daftar_laporan)
+      daftar_laporan = [
+            "Laporan Ringkasan Data Hasil Penelitian",
+            "Laporan Evaluasi Performa Model",
+            "Laporan Kata Sentimen Positif Terbanyak",
+            "Laporan Distribusi Sentimen"
+      ]
+      
+      pilihan = st.selectbox("Pilih Kategori Laporan:", daftar_laporan)
 
-   if st.button("Siapkan Dokumen", type="primary"):
-      with st.spinner("Menyusun dokumen PDF beserta visualisasi grafik..."):
-         
-         pdf_bytes = cetak_pdf_terpadu(pilihan_laporan=pilihan, df_data=df, metrik=evaluation_metrics)
-                
-         st.success(f"Dokumen **{pilihan}** berhasil disiapkan!")
-                
-         st.download_button(
-            label="Unduh File PDF",
-            data=pdf_bytes,
-            file_name=f"{pilihan.replace(' ', '_')}.pdf",
-            mime="application/pdf"
-                )
+      if st.button("Siapkan Dokumen", type="primary"):
+         with st.spinner("Menyusun dokumen PDF beserta visualisasi grafik..."):
+            
+            pdf_bytes = cetak_pdf_terpadu(pilihan_laporan=pilihan, df_data=df, metrik=evaluation_metrics)
+                  
+            st.success(f"Dokumen **{pilihan}** berhasil disiapkan!")
+                  
+            st.download_button(
+               label="Unduh File PDF",
+               data=pdf_bytes,
+               file_name=f"{pilihan.replace(' ', '_')}.pdf",
+               mime="application/pdf"
+                  )
          
 
 if not st.session_state['logged_in']:

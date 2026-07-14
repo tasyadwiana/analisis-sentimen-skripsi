@@ -580,7 +580,7 @@ def main_page():
 #cetak laporan
    elif menu == "Cetak Laporan":
       st.title("Cetak Dokumen Laporan")
-      st.write("Unduh hasil analisis sentimen dalam format dokumen PDF resmi.")
+      st.write("Unduh hasil analisis sentimen dalam format dokumen PDF.")
       st.markdown("---")
 
       daftar_laporan = [

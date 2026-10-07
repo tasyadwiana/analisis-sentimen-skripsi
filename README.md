@@ -19,3 +19,16 @@ The models are evaluated to determine which method provides better sentiment cla
 * Model performance evaluation
 * Comparison between Naive Bayes and SVM
 * PDF report generation
+
+## Live Demo
+[Try the application] https://comment-sentiment.streamlit.app/
+
+## How to Run
+### 1. Clone the repository
+git clone https://github.com/tasyadwiana/analisis-sentimen-skripsi.git cd analisis-sentimen-skripsi
+### 2. Install the required dependencies
+pip install -r requirement.txt
+### 3. Run the Streamlit Application
+streamlit run app.py
+
+The application will then be available in your local browser.
